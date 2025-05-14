@@ -60,7 +60,7 @@ export type SkipableInfiniteOptionsIn<TClientContext extends ClientContext, TInp
     MaybeRefDeep<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>[Property]>;
   }
   & {
-    input: (pageParam: TPageParam) => MaybeRefDeep<TInput | SkipToken>
+    input: MaybeRef<SkipToken | ((pageParam: TPageParam) => MaybeRefDeep<TInput>)>
     enabled?: MaybeRefOrGetter<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>['enabled']>
     queryKey?: MaybeRefDeep<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>['queryKey']>
     shallow?: boolean

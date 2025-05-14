@@ -3,7 +3,7 @@ import type { MaybeOptionalOptions } from '@orpc/shared'
 import type { InfiniteData } from '@tanstack/vue-query'
 import type { InfiniteOptionsBase, InfiniteOptionsIn, MutationOptions, MutationOptionsIn, QueryOptionsBase, QueryOptionsIn, SkipableInfiniteOptionsBase, SkipableInfiniteOptionsIn } from './types'
 import { skipToken } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 import { buildKey } from './key'
 import { unrefDeep } from './utils'
 
@@ -76,16 +76,18 @@ export function createProcedureUtils<TClientContext extends ClientContext, TInpu
     infiniteOptions(optionsIn) {
       return {
         queryKey: computed(() => {
-          return buildKey(options.path, { type: 'infinite', input: unrefDeep(optionsIn.input(unrefDeep(optionsIn.initialPageParam) as any) as any) })
+          const input = toValue(optionsIn.input)
+
+          return buildKey(options.path, { type: 'infinite', input: input === skipToken ? input : unrefDeep(input(unrefDeep(optionsIn.initialPageParam) as any) as any) })
         }),
         queryFn: computed(() => ({ pageParam, signal }) => {
-          const input = unrefDeep(optionsIn.input(pageParam as any))
+          const input = toValue(optionsIn.input)
 
           if (input === skipToken) {
             return skipToken
           }
 
-          return client(input as any, { signal, context: unrefDeep(optionsIn.context) as any })
+          return client(unrefDeep(input(pageParam as any)) as any, { signal, context: unrefDeep(optionsIn.context) as any })
         }),
         ...(optionsIn as any),
       }

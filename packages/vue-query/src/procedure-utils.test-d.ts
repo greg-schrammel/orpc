@@ -285,7 +285,7 @@ describe('ProcedureUtils', () => {
 
       requiredUtils.infiniteOptions({
         context: { batch: true },
-        input: () => skipToken,
+        input: skipToken,
         getNextPageParam,
         initialPageParam,
       })
@@ -294,7 +294,7 @@ describe('ProcedureUtils', () => {
 
       requiredUtils.infiniteOptions({
         context: { batch: true },
-        input: () => boolean ? skipToken : 'input',
+        input: boolean ? skipToken : () => 'input',
         getNextPageParam,
         initialPageParam,
       })
