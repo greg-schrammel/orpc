@@ -1,6 +1,6 @@
 import type { ClientContext } from '@orpc/client'
 import type { AnyFunction } from '@orpc/shared'
-import type { InfiniteQueryObserverOptions, MutationObserverOptions, QueryFunctionContext, QueryKey, QueryObserverOptions } from '@tanstack/vue-query'
+import type { InfiniteQueryObserverOptions, MutationObserverOptions, QueryFunctionContext, QueryKey, QueryObserverOptions, SkipToken } from '@tanstack/vue-query'
 import type { ComputedRef, MaybeRef, MaybeRefOrGetter } from 'vue'
 
 /**
@@ -49,7 +49,26 @@ export type InfiniteOptionsIn<TClientContext extends ClientContext, TInput, TOut
 
 export interface InfiniteOptionsBase<TOutput, TError, TPageParam> {
   queryKey: ComputedRef<QueryKey>
-  queryFn(ctx: QueryFunctionContext<QueryKey, TPageParam>): Promise<TOutput>
+  queryFn: ComputedRef<(ctx: QueryFunctionContext<QueryKey, TPageParam>) => Promise<TOutput>>
+  retry?(failureCount: number, error: TError): boolean // this help tanstack can infer TError
+}
+
+export type SkipableInfiniteOptionsIn<TClientContext extends ClientContext, TInput, TOutput, TError, TSelectData, TPageParam> =
+  & (Record<never, never> extends TClientContext ? { context?: MaybeRefDeep<TClientContext> } : { context: MaybeRefDeep<TClientContext> })
+  & {
+    [Property in keyof Omit<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>, 'queryKey' | 'enabled'>]:
+    MaybeRefDeep<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>[Property]>;
+  }
+  & {
+    input: (pageParam: TPageParam) => MaybeRefDeep<TInput>
+    enabled?: MaybeRefOrGetter<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>['enabled']>
+    queryKey?: MaybeRefDeep<InfiniteQueryObserverOptions<TOutput, TError, TSelectData, TOutput, QueryKey, TPageParam>['queryKey']>
+    shallow?: boolean
+  }
+
+export interface SkipableInfiniteOptionsBase<TOutput, TError, TPageParam> {
+  queryKey: ComputedRef<QueryKey>
+  queryFn: ComputedRef<((ctx: QueryFunctionContext<QueryKey, TPageParam>) => Promise<TOutput>) | SkipToken>
   retry?(failureCount: number, error: TError): boolean // this help tanstack can infer TError
 }
 

@@ -1,7 +1,8 @@
 import type { Client, ClientContext } from '@orpc/client'
 import type { MaybeOptionalOptions } from '@orpc/shared'
 import type { InfiniteData } from '@tanstack/vue-query'
-import type { InfiniteOptionsBase, InfiniteOptionsIn, MutationOptions, MutationOptionsIn, QueryOptionsBase, QueryOptionsIn } from './types'
+import type { InfiniteOptionsBase, InfiniteOptionsIn, MutationOptions, MutationOptionsIn, QueryOptionsBase, QueryOptionsIn, SkipableInfiniteOptionsBase, SkipableInfiniteOptionsIn } from './types'
+import { skipToken } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { buildKey } from './key'
 import { unrefDeep } from './utils'
@@ -33,6 +34,15 @@ export interface ProcedureUtils<TClientContext extends ClientContext, TInput, TO
   infiniteOptions<U, UPageParam, USelectData = InfiniteData<TOutput, UPageParam>>(
     options: U & InfiniteOptionsIn<TClientContext, TInput, TOutput, TError, USelectData, UPageParam>
   ): NoInfer<U & Omit<InfiniteOptionsBase<TOutput, TError, UPageParam>, keyof U>>
+
+  /**
+   * Generate options used for useInfiniteQuery/prefetchInfiniteQuery/... and support skipToken
+   *
+   * @see {@link https://orpc.unnoq.com/docs/tanstack-query/basic#infinite-query-options-utility Tanstack Infinite Query Options Utility Docs}
+   */
+  infiniteOptions<U, UPageParam, USelectData = InfiniteData<TOutput, UPageParam>>(
+    options: U & SkipableInfiniteOptionsIn<TClientContext, TInput, TOutput, TError, USelectData, UPageParam>
+  ): NoInfer<U & Omit<SkipableInfiniteOptionsBase<TOutput, TError, UPageParam>, keyof U>>
 
   /**
    * Generate options used for useMutation/...
@@ -68,9 +78,15 @@ export function createProcedureUtils<TClientContext extends ClientContext, TInpu
         queryKey: computed(() => {
           return buildKey(options.path, { type: 'infinite', input: unrefDeep(optionsIn.input(unrefDeep(optionsIn.initialPageParam) as any) as any) })
         }),
-        queryFn: ({ pageParam, signal }) => {
-          return client(unrefDeep(optionsIn.input(pageParam as any)) as any, { signal, context: unrefDeep(optionsIn.context) as any })
-        },
+        queryFn: computed(() => ({ pageParam, signal }) => {
+          const input = unrefDeep(optionsIn.input(pageParam as any))
+
+          if (input === skipToken) {
+            return skipToken
+          }
+
+          return client(input as any, { signal, context: unrefDeep(optionsIn.context) as any })
+        }),
         ...(optionsIn as any),
       }
     },

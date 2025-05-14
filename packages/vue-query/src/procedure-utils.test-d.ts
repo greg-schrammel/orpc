@@ -3,7 +3,7 @@ import type { ErrorFromErrorMap } from '@orpc/contract'
 import type { GetNextPageParamFunction, InfiniteData } from '@tanstack/vue-query'
 import type { baseErrorMap } from '../../contract/tests/shared'
 import type { ProcedureUtils } from './procedure-utils'
-import { useInfiniteQuery, useMutation, useQueries, useQuery } from '@tanstack/vue-query'
+import { skipToken, useInfiniteQuery, useMutation, useQueries, useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { queryClient } from '../tests/shared'
 
@@ -185,14 +185,12 @@ describe('ProcedureUtils', () => {
         initialPageParam,
       })
 
+      // @ts-expect-error conflict types
       utils.infiniteOptions({
-        // @ts-expect-error conflict types
         input: (pageParam: number) => {
-          return 'input'
+          return { cursor: pageParam }
         },
-        // @ts-expect-error conflict types
         getNextPageParam,
-        // @ts-expect-error conflict types
         initialPageParam: undefined,
       })
     })
@@ -269,6 +267,37 @@ describe('ProcedureUtils', () => {
       ).toEqualTypeOf<
         Promise<InfiniteData<UtilsOutput, number>>
       >()
+    })
+  })
+
+  describe('.infiniteOptions with skipToken', () => {
+    const getNextPageParam = {} as GetNextPageParamFunction<number, UtilsOutput>
+    const initialPageParam = 1
+
+    it('can optional context', () => {
+      const requiredUtils = {} as ProcedureUtils<{ batch: boolean }, 'input' | undefined, UtilsOutput, Error>
+
+      utils.infiniteOptions({
+        input: () => skipToken,
+        getNextPageParam,
+        initialPageParam,
+      })
+
+      requiredUtils.infiniteOptions({
+        context: { batch: true },
+        input: () => skipToken,
+        getNextPageParam,
+        initialPageParam,
+      })
+
+      const boolean = true
+
+      requiredUtils.infiniteOptions({
+        context: { batch: true },
+        input: () => boolean ? skipToken : 'input',
+        getNextPageParam,
+        initialPageParam,
+      })
     })
   })
 
